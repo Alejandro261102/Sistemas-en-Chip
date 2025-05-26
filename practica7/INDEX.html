@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitoreo de Humedad y Temperatura</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #00695c;
+    }
+
+    #selector {
+      background: #ffffffcc;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: 0 auto 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    #selector label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    #fecha {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    .chart-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .chart-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      flex: 1 1 45%;
+      max-width: 48%;
+      box-sizing: border-box;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+    }
+
+    @media (max-width: 768px) {
+      .chart-card {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Monitoreo de humedad y temperatura</h2>
+
+  <div id="selector">
+    <label for="fecha">Selecciona una fecha:</label>
+    <input type="date" id="fecha" />
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-card">
+      <canvas id="graficaHumedad"></canvas>
+    </div>
+    <div class="chart-card">
+      <canvas id="graficaTemperatura"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const url = "https://humedad-en-esp32-default-rtdb.firebaseio.com/lecturas.json";
+
+    document.getElementById('fecha').addEventListener('change', async function () {
+      const fechaSeleccionada = this.value;
+      if (!fechaSeleccionada) return;
+
+      const response = await fetch(url);
+      const datos = await response.json();
+
+      const horas = [];
+      const humedadSuelo = [];
+      const humedadAire = [];
+      const temperatura = [];
+
+      for (const timestamp in datos) {
+        if (timestamp.startsWith(fechaSeleccionada)) {
+          const hora = timestamp.split("T")[1].substring(0, 5);
+          horas.push(hora);
+          humedadSuelo.push(datos[timestamp].humedad_suelo);
+          humedadAire.push(datos[timestamp].humedad_aire);
+          temperatura.push(datos[timestamp].temperatura);
+        }
+      }
+
+      actualizarGraficaHumedad(horas, humedadSuelo, humedadAire);
+      actualizarGraficaTemperatura(horas, temperatura);
+    });
+
+    let chartHumedad, chartTemperatura;
+
+    function actualizarGraficaHumedad(labels, suelo, aire) {
+      if (chartHumedad) chartHumedad.destroy();
+      chartHumedad = new Chart(document.getElementById('graficaHumedad'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Humedad Suelo (%)',
+              data: suelo,
+              borderColor: '#2e7d32',
+              backgroundColor: 'rgba(76, 175, 80, 0.2)',
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: 'Humedad Aire (%)',
+              data: aire,
+              borderColor: '#0277bd',
+              backgroundColor: 'rgba(30, 136, 229, 0.2)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            title: { display: true, text: 'Humedad (%)', font: { size: 18 } }
+          },
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
+
+    function actualizarGraficaTemperatura(labels, temp) {
+      if (chartTemperatura) chartTemperatura.destroy();
+      chartTemperatura = new Chart(document.getElementById('graficaTemperatura'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Temperatura (°C)',
+            data: temp,
+            borderColor: '#d32f2f',
+            backgroundColor: 'rgba(244, 67, 54, 0.2)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          plugins: {
+            title: { display: true, text: 'Temperatura (°C)', font: { size: 18 } }
+          },
+          responsive: true,
+          scales: {
+            y: { beginAtZero: false }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

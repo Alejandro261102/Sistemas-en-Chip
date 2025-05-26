@@ -104,7 +104,6 @@ void loop() {
   } else {
     Serial.println("Sin conexión WiFi, no se envió a Firebase");
   }
-  println("Hacemos una prueba de sincronizacion con repositorio remoto");
 
   Serial.printf("Esperando %d segundos...\n", SLEEP_TIME_MS / 1000);
   delay(SLEEP_TIME_MS);
